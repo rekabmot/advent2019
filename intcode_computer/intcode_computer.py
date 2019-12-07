@@ -4,6 +4,15 @@ class IntcodeComputer:
     self.program = list(map(lambda x : int(x), program.split(",")))
     self.reset()
 
+    self.input_function = self.default_input
+    self.output_function = self.default_output
+
+  def default_input(self):
+    return int(input("-->"))
+
+  def default_output(self, x, context):
+    return print(x)
+
   def reset(self):
     self.memory = list(self.program)
     self.instruction_pointer = 0
@@ -44,12 +53,12 @@ class IntcodeComputer:
 
   def getInput(self, param_modes):
     x = self.getParamValue(1, "1")
-    self.memory[x] = int(input("-->"))
+    self.memory[x] = self.input_function()
     self.instruction_pointer += 2
 
   def printOutput(self, param_modes):
     x = self.getParamValue(1, param_modes)
-    print(x)
+    self.output_function(x, self)
     self.instruction_pointer += 2
 
   def jump_true(self, param_modes):
@@ -102,8 +111,10 @@ class IntcodeComputer:
     return str(self.memory[self.instruction_pointer])[:-2].zfill(5)
 
   def run(self):
+    self.is_running = True
+
     opcode = self.get_opcode()
-    while opcode != 99:
+    while self.is_running:
       param_modes = self.get_param_modes()
 
       if opcode == 1:
@@ -122,5 +133,7 @@ class IntcodeComputer:
         self.less_than(param_modes)
       elif opcode == 8:
         self.equals(param_modes)
+      elif opcode == 99:
+        self.is_running = False      
 
       opcode = self.get_opcode()
