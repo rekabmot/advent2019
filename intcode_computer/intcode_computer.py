@@ -3,6 +3,7 @@ class IntcodeComputer:
   def __init__(self, program):
     self.program = list(map(lambda x : int(x), program.split(",")))
     self.reset()
+    self.relative_base = 0
 
     self.input_function = self.default_input
     self.output_function = self.default_output
@@ -15,6 +16,9 @@ class IntcodeComputer:
 
   def reset(self):
     self.memory = list(self.program)
+
+    for i in range(0, 10000):
+      self.memory.append(0)
     self.instruction_pointer = 0
 
   def setMemory(self, address, value):
@@ -33,12 +37,23 @@ class IntcodeComputer:
       return self.memory[self.getOffsetAddress(index)]
     elif mode == 1:
       return self.memory[self.instruction_pointer + index]
+    elif mode == 2:
+      return self.memory[self.getOffsetAddress(index) + self.relative_base]
+
+  def getOutputParamAddress(self, index, param_modes):
+    address = self.getOffsetAddress(index)
+
+    if int(param_modes[-index]) == 2:
+      address += self.relative_base
+
+    return address
+
 
 
   def add(self, param_modes):
     x = self.getParamValue(1, param_modes)
     y = self.getParamValue(2, param_modes)
-    z = self.getOffsetAddress(3)
+    z = self.getOutputParamAddress(3, param_modes)
 
     self.memory[z] = x + y
     self.instruction_pointer += 4
@@ -46,13 +61,13 @@ class IntcodeComputer:
   def multiply(self, param_modes):
     x = self.getParamValue(1, param_modes)
     y = self.getParamValue(2, param_modes)
-    z = self.getOffsetAddress(3)
+    z = self.getOutputParamAddress(3, param_modes)
 
     self.memory[z] = x * y
     self.instruction_pointer += 4
 
   def getInput(self, param_modes):
-    x = self.getParamValue(1, "1")
+    x = self.getOutputParamAddress(3, param_modes)
     self.memory[x] = self.input_function()
     self.instruction_pointer += 2
 
@@ -82,7 +97,7 @@ class IntcodeComputer:
   def less_than(self, param_modes):
     x = self.getParamValue(1, param_modes)
     y = self.getParamValue(2, param_modes)
-    z = self.getOffsetAddress(3)
+    z = self.getOutputParamAddress(3, param_modes)
 
     if x < y:
       self.memory[z] = 1
@@ -91,11 +106,10 @@ class IntcodeComputer:
     
     self.instruction_pointer += 4
 
-
   def equals(self, param_modes):
     x = self.getParamValue(1, param_modes)
     y = self.getParamValue(2, param_modes)
-    z = self.getOffsetAddress(3)
+    z = self.getOutputParamAddress(3, param_modes)
 
     if x == y:
       self.memory[z] = 1
@@ -103,6 +117,11 @@ class IntcodeComputer:
       self.memory[z] = 0
 
     self.instruction_pointer += 4
+  
+  def adjust_relative_base(self, param_modes):
+    x = self.getParamValue(1, param_modes)
+    self.relative_base += x
+    self.instruction_pointer += 2
 
   def get_opcode(self):
     return int(str(self.memory[self.instruction_pointer])[-2:])
@@ -133,6 +152,8 @@ class IntcodeComputer:
         self.less_than(param_modes)
       elif opcode == 8:
         self.equals(param_modes)
+      elif opcode == 9:
+        self.adjust_relative_base(param_modes)
       elif opcode == 99:
         self.is_running = False      
 
